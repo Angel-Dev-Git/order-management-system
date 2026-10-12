@@ -30,7 +30,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}",
+              "raw": "{\n  \"email\": \"admin@business.com\",\n  \"password\": \"Password@123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -258,7 +258,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Sample Customer\",\n  \"email\": \"customer@example.com\",\n  \"phone\": \"9876543210\",\n  \"address\": \"Jaipur, Rajasthan\"\n}",
+              "raw": "{\n  \"name\": \"Customer\",\n  \"email\": \"customer@oms.com\",\n  \"phone\": \"9876543210\",\n  \"address\": \"Jaipur,Rajasthan\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -340,7 +340,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Customer\",\n  \"email\": \"customer@example.com\",\n  \"phone\": \"9876543210\",\n  \"address\": \"Jaipur, Rajasthan\"\n}",
+              "raw": "{\n  \"name\": \"Customerrrrr\",\n  \"email\": \"customer@oms.com\",\n  \"phone\": \"9876543210\",\n  \"address\": \"Jaipur\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -462,7 +462,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Sample Product\",\n  \"sku\": \"SKU-1001\",\n  \"description\": \"Sample product\",\n  \"price\": 199.99,\n  \"stock_quantity\": 25,\n  \"status\": \"active\"\n}",
+              "raw": "{\n  \"name\": \"Product 1\",\n  \"sku\": \"SKU-1001\",\n  \"description\": \"product\",\n  \"price\": 199.99,\n  \"stock_quantity\": 25,\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -544,7 +544,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Product\",\n  \"sku\": \"SKU-1001\",\n  \"description\": \"Updated description\",\n  \"price\": 249.99,\n  \"stock_quantity\": 20,\n  \"status\": \"active\"\n}",
+              "raw": "{\n  \"name\": \"Productkkkk\",\n  \"sku\": \"SKU-100\",\n  \"description\": \"description\",\n  \"price\": 249.99,\n  \"stock_quantity\": 20,\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -666,7 +666,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"priority\": \"normal\",\n  \"items\": [\n    {\n      \"product_id\": \"{{product_id}}\",\n      \"quantity\": 1\n    }\n  ],\n  \"notes\": \"Created from Postman\"\n}",
+              "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"priority\": \"normal\",\n  \"items\": [\n    {\n      \"product_id\": \"{{product_id}}\",\n      \"quantity\": 12\n    }\n  ],\n  \"notes\": \"Created by me\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -688,7 +688,7 @@
           "response": []
         },
         {
-          "name": "Get Order by ID",
+          "name": "Get order details",
           "request": {
             "auth": {
               "type": "bearer",
@@ -748,7 +748,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"priority\": \"high\",\n  \"notes\": \"Updated from Postman\"\n}",
+              "raw": "{\n  \"priority\": \"high\",\n  \"notes\": \"hhhhhhh\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -845,7 +845,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"processing\",\n  \"note\": \"Status changed from Postman\"\n}",
+              "raw": "{\n  \"status\": \"processing\",\n  \"note\": \"Status changed\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -930,7 +930,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"note\": \"Follow up with customer\"\n}",
+              "raw": "{\n  \"note\": \"notes\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
