@@ -25,7 +25,7 @@ class CustomerRequest extends FormRequest
         return [
              'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:12',
             'address' => 'nullable|string',
             'status' => 'sometimes|in:active,inactive',
         ];

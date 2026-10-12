@@ -9,7 +9,6 @@ class Order extends Model
 {
     use HasFactory;
     protected $fillable = [
-
       'order_number',
       'customer_id',
       'status',
@@ -21,7 +20,7 @@ class Order extends Model
       'subtotal',
       'discount',
       'tax',
-        'stock_deducted_at'
+      'stock_deducted_at'
     ];
 
     public function customer()

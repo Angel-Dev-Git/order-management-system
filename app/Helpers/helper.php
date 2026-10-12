@@ -19,10 +19,10 @@ if (! function_exists('auditLog')) {
 if(!function_exists('ensureAdmin')){
     function ensureAdmin(Request $request): void
     {
+        // dd($request->user());
         $user = $request->user();
 
         abort_unless($user, 401, 'Unauthenticated.');
-
         abort_unless(
             strtolower($user->role?->name ?? '') === 'admin',
             403,

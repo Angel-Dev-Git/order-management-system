@@ -92,10 +92,11 @@ class OrderService
        return DB::transaction(function () use ($validated,$userId) {
             $subtotal = 0;
             $items = [];
+
             foreach ($validated['items'] as $item) {
                 $product = Product::where('id', $item['product_id'])
-                        ->lockForUpdate()
-                        ->firstOrFail();
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
                 if ($product->status !== 'active') {
                     throw ValidationException::withMessages([
@@ -112,30 +113,45 @@ class OrderService
                         ],
                     ]);
                 }
-                $pricetotal = (float)$product->price * $item['quantity'];
-                $subtotal = $subtotal + $pricetotal;
-               // store order items
+
+                $quantity = (int) $item['quantity'];
+                $unitPrice = (float) $product->price;
+                $lineTotal = round($unitPrice * $quantity, 2);
+
+                $subtotal += $lineTotal;
+
+                // Prepare order items using database product prices.
                 $items[] = [
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                     'sku' => $product->sku,
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $product->price,
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
                     'discount' => 0,
                     'tax' => 0,
-                    'total' => $pricetotal,
+                    'total' => $lineTotal,
                 ];
             }
 
-            $discount = (float)($validated['discount'] ?? 0);
-            $tax = (float)($validated['tax'] ?? 0);
+            $subtotal = round($subtotal, 2);
+
+            // Apply order-level discount and tax.
+            $discount = round((float) ($validated['discount'] ?? 0), 2);
+            $tax = round((float) ($validated['tax'] ?? 0), 2);
+
+            if ($discount < 0) {
+                throw ValidationException::withMessages([
+                    'discount' => ['Discount cannot be negative.'],
+                ]);
+            }
 
             if ($discount > $subtotal) {
                 throw ValidationException::withMessages([
                     'discount' => ['Discount cannot exceed the subtotal.'],
                 ]);
             }
-            $total = round($subtotal - $discount + $tax, 2);
+            
+             $total = round(max(0, $subtotal - $discount + $tax), 2);
 
             if ($total < 0) {
                 throw ValidationException::withMessages([

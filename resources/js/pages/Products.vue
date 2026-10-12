@@ -147,7 +147,7 @@ async function saveProduct() {
 
 async function deleteProduct(product) {
     if (!canDeleteProduct.value) return
-  const confirmed = await confirmModalRef.value.open({
+  const confirmed = await confirmModalRef.value?.open({
         title: 'Delete product?',
         message: `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
         confirmText: 'Delete product',
@@ -529,5 +529,7 @@ onMounted(() => fetchProducts())
         </form>
       </div>
     </div>
+     <AppToast ref="toastRef" />
+        <ConfirmModal ref="confirmModalRef" />
   </div>
 </template>

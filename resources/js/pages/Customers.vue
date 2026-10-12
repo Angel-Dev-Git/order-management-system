@@ -188,13 +188,13 @@ onMounted(() => {
     </div>
 
     <!-- Error -->
-    <div
+    <!-- <div
       v-if="error && !showModal"
       role="alert"
       class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
     >
       {{ error }}
-    </div>
+    </div> -->
 
     <!-- Search -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -360,13 +360,13 @@ onMounted(() => {
         </div>
 
         <form @submit.prevent="saveCustomer" class="space-y-5 p-6">
-          <div
+          <!-- <div
             v-if="error"
             role="alert"
             class="rounded-lg bg-red-50 p-3 text-sm text-red-700"
           >
             {{ error }}
-          </div>
+          </div> -->
 
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700">

@@ -79,9 +79,12 @@ const taxAmount = computed(() =>
     Math.max(0, Number(form.value.tax) || 0)
 )
 
-const total = computed(() =>
-    Math.max(0, subtotal.value - discountAmount.value + taxAmount.value)
-)
+const total = computed(() => {
+    const finalAmount =
+        subtotal.value - discountAmount.value + taxAmount.value;
+
+    return Number(Math.max(0, finalAmount).toFixed(2));
+});
 
 async function loadFormData() {
     loading.value = true
@@ -594,10 +597,10 @@ onMounted(loadFormData)
                         </select>
                     </div>
 
-                    <p class="mt-4 text-sm text-slate-500">
-                        Employee assignment is not included because your
+                    <!-- <p class="mt-4 text-sm text-slate-500">
+                        Customer assignment is not included because your
                         current frontend has no confirmed users API endpoint.
-                    </p>
+                    </p> -->
                 </div>
 
                 <!-- Step 5: Review -->
