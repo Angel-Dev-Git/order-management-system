@@ -22,7 +22,7 @@ The application uses Laravel for server-side APIs and business logic, Vue 3 for 
 | Local development | XAMPP on Windows | Local PHP/MySQL development environment |
 | API testing | Postman | Manual API request and response verification |
 | Version control | Git / GitHub | Source control and repository delivery |
-| AI assistance | ChatGPT (if this matches the tools actually used) | Development support, troubleshooting, explanations, and documentation drafting; generated suggestions were reviewed against the code |
+| AI assistance | ChatGPT,Copilot | Development support, troubleshooting, explanations, and documentation drafting; generated suggestions were reviewed against the code |
 
 **Authentication note:** Confirm whether the final application uses Laravel Sanctum bearer tokens or another authentication mechanism. The Postman collection is configured for a bearer token, so update it if the implementation differs.
 
