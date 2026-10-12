@@ -28,10 +28,10 @@ const normalizedRole = computed(() => role.value.toLowerCase())
 // Role-based sidebar navigation
 const allMenuItems = [
     {label: 'Dashboard',path: '/dashboard',permissions: ['dashboard.view'],icon: 'dashboard'},
-    {label: 'Orders',path: '/orders',permissions: ['orders.view_all', 'orders.view_assigned'],icon: 'orders'},
+    {label: 'User Management',path: '/admin/users',permissions: ['users.manage'],icon: 'users'},
     {label: 'Customers',path: '/customers',permissions: ['customers.view'],icon: 'customers'},
     {label: 'Products',path: '/products',permissions: ['products.view'],icon: 'products'},
-    {label: 'User Management',path: '/admin/users',permissions: ['users.manage'],icon: 'users'},
+    {label: 'Orders',path: '/orders',permissions: ['orders.view_all', 'orders.view_assigned'],icon: 'orders'},
     {label: 'Role Management',path: '/admin/roles',permissions: ['roles.manage'],icon: 'roles'},
     {label: 'Permission Management',path: '/admin/permissions',permissions: ['permissions.manage'],icon: 'permissions'},
     {label: 'Audit Logs',path: '/admin/audit-logs',permissions: ['audit_logs.view'],icon: 'audit'},
