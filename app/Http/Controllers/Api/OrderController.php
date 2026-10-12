@@ -193,6 +193,7 @@ public function showStatusHistory(Request $request, Order $order)
 
     return response()->json([
         'success' => true,
+        'message' => 'Order status history retrieved successfully.',
         'data' => $history,
     ]);
 }
@@ -305,10 +306,10 @@ public function activity(Request $request, Order $order)
                 'action' => 'status_changed',
                 'description' => $item->note
                     ?? "Status changed to {$item->status}",
-                'details' => [
+                 'details' => [
                     'old_status' => $item->previous_status,
                     'new_status' => $item->new_status,
-                    'note' => $item->note ?? null,
+                    'remarks' => $item->remarks,
                 ],
 
             'user' => $item->user?->name ?? 'System',
@@ -346,6 +347,8 @@ public function activity(Request $request, Order $order)
         });
     $activity = $statusHistory->concat($notes)->concat($auditLogs)->sortByDesc('created_at')->values();
     return response()->json([
+         'success' => true,
+        'message' => 'Order activity retrieved successfully.',
         'data' => $activity,
     ]);
 }
@@ -394,6 +397,7 @@ public function dashboard(DashbaordService $dashbaordService)
    
     return response()->json([
         'success' => true,
+        'message' => 'Dashboard data retrieved successfully.',
         'data' => $dashbaordService->getDashboardData()
         
     ]);

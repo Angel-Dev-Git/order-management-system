@@ -145,12 +145,23 @@ public function test_user_info(): void
             'password' => 'password',
         ]);
 
-        $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true,
-                     'message' => 'Login successful',
-                     'data'=>$user
-                 ]);
+        $response->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('message', 'Login successful')
+        ->assertJsonStructure([
+            'success',
+            'message',
+            'data' => [
+                'user' => [
+                    'id',
+                    'name',
+                    'email',
+                    'token',
+                ],
+            ],
+        ])
+        ->assertJsonPath('data.user.email', 'test@example.com')
+        ->assertJsonPath('data.user.name', User::where('email','test@example.com')->value('name'));
     }
     public function test_user_login_invalid_credentials(): void
     {
@@ -243,6 +254,7 @@ public function test_user_info(): void
     'remarks'        => null,
     ], $attributes));
 }
+// order is created
 public function test_order_creation(): void
 {
     $user = $this->createTestUser();
@@ -297,52 +309,54 @@ public function test_order_creation(): void
         'quantity' => 2,
     ]);
 }
+// update order status
+public  function test_order_status_update(): void
+{
+    $user = $this->createTestUser();
 
-    public  function test_order_status_update(): void
-    {
-        $user = $this->createTestUser();
+    Sanctum::actingAs($user);
+    $order = $this->createTestOrder([
+        'status' => 'draft',
+    ]);
+    
+    $response = $this->patchJson(
+        "/api/orders/{$order->id}/status",
+        ['status' => 'pending']
+    );
 
-        Sanctum::actingAs($user);
-        $order = $this->createTestOrder([
-            'status' => 'draft',
-        ]);
-        
-       $response = $this->patchJson(
-            "/api/orders/{$order->id}/status",
-            ['status' => 'pending']
+    $response->assertOk()
+        ->assertJsonPath('success', true);
+
+    $this->assertDatabaseHas('orders', [
+        'id' => $order->id,
+        'status' => 'pending',
+    ]);
+}
+// assign order
+public function test_order_assignment(): void
+{
+    $admin = $this->createTestUser('Admin');
+    $staff = $this->createTestUser('Staff');
+
+    Sanctum::actingAs($admin);
+    // Create an order first
+    $order = $this->createTestOrder([
+        'assigned_to' => null,
+    ]);
+
+    $response = $this->patchJson(
+            "/api/orders/{$order->id}/assign",
+            ['assigned_to' => $staff->id]
         );
 
-        $response->assertOk()
-            ->assertJsonPath('success', true);
+        $response->assertOk();
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
-            'status' => 'pending',
+            'assigned_to' => $staff->id,
         ]);
-    }
-    public function test_order_assignment(): void
-    {
-        $admin = $this->createTestUser('Admin');
-        $staff = $this->createTestUser('Staff');
-
-        Sanctum::actingAs($admin);
-        // Create an order first
-       $order = $this->createTestOrder([
-            'assigned_to' => null,
-        ]);
-
-       $response = $this->patchJson(
-                "/api/orders/{$order->id}/assign",
-                ['assigned_to' => $staff->id]
-            );
-
-            $response->assertOk();
-
-            $this->assertDatabaseHas('orders', [
-                'id' => $order->id,
-                'assigned_to' => $staff->id,
-            ]);
-    }
+}
+// search order
    public function test_order_search(): void
 {
     $user = $this->createTestUser();
@@ -355,109 +369,145 @@ public function test_order_creation(): void
 
     $response->assertOk();
 }
-    public function test_order_filtering(): void
-    {
-         $user = $this->createTestUser();
+ // filter orders
+public function test_order_filtering(): void
+{
+    $user = $this->createTestUser();
+    Sanctum::actingAs($user);
+    $customer1 = Customer::create([
+        'name' => 'Customer One',
+        'email' => 'customer1@example.com',
+        'phone' => '9876543210',
+        'address' => 'Address One',
+        'status' => 'active',
+    ]);
 
-$this->actingAs($user, 'sanctum');
-        // Create some orders for testing
-        $this->createTestOrder([
+    $customer2 = Customer::create([
+        'name' => 'Customer Two',
+        'email' => 'customer2@example.com',
+        'phone' => '9876543211',
+        'address' => 'Address Two',
+        'status' => 'active',
+    ]);
+
+    $assignedUser1 = $this->createTestUser('Staff');
+    $assignedUser2 = $this->createTestUser('Staff');
+
+    $this->createTestOrder([
+        'order_number' => 'ORD123456',
+        'customer_id' => $customer1->id,
+        'assigned_to' => $assignedUser1->id,
+    ]);
+
+    $this->createTestOrder([
+        'order_number' => 'ORD654321',
+        'customer_id' => $customer2->id,
+        'assigned_to' => $assignedUser2->id,
+    ]);
+    $response = $this->getJson("/api/orders?customer_id={$customer1->id}&assigned_to={$assignedUser1->id}");
+    $response->assertOk()
+        ->assertJsonFragment([
             'order_number' => 'ORD123456',
-                    'customer_id' => 1,
-                    'assigned_to' => 2,
-        ]);
-
-        $this->createTestOrder([
+        ])
+        ->assertJsonMissing([
             'order_number' => 'ORD654321',
-            'customer_id' => 2,
-            'assigned_to' => 3,
         ]);
+}
+// sort orders
+public function test_order_sorting(): void
+{
+        $user = $this->createTestUser();
 
-        $response = $this->getJson('/api/orders?customer_id=1&assigned_to=2');
+    $this->actingAs($user, 'sanctum');
+    // Create some orders for testing
+    $this->createTestOrder([
+        'order_number' => 'ORD123456',
+        'order_date' => now()->subDays(1),
+    ]);
 
-        $response->assertStatus(200)
-                 ->assertJsonFragment([
-                     'order_number' => 'ORD123456',
-                 ])
-                 ->assertJsonMissing([
-                     'order_number' => 'ORD654321',
-                 ]);
-    }
-    public function test_order_sorting(): void
-    {
-         $user = $this->createTestUser();
+    $this->createTestOrder([
+        'order_number' => 'ORD654321',
+        'order_date' => now(),
+    ]);
+    
 
-        $this->actingAs($user, 'sanctum');
-        // Create some orders for testing
+    $response = $this->getJson('/api/orders?sort_by=order_date&sort_direction=desc');
+
+   $response->assertStatus(200)
+            ->assertJsonPath('data.data.0.order_number', 'ORD654321')
+            ->assertJsonPath('data.data.1.order_number', 'ORD123456');
+}
+//   pagination 
+public function test_order_pagination(): void
+{
+    $user = $this->createTestUser();
+    Sanctum::actingAs($user);
+
+     for ($i = 1; $i <= 15; $i++) {
         $this->createTestOrder([
-            'order_number' => 'ORD123456',
-            'order_date' => now()->subDays(1),
+            'order_number' => 'ORD-PAGE-' . $i,
+            'created_by' => $user->id,
+            'assigned_to' => $user->id,
         ]);
-
-        $this->createTestOrder([
-            'order_number' => 'ORD654321',
-            'order_date' => now(),
-        ]);
-       
-
-        $response = $this->getJson('/api/orders?sort_by=order_date&sort_direction=desc');
-
-        $response->assertStatus(200)
-                 ->assertJsonPath('data.0.order_number', 'ORD654321')
-                 ->assertJsonPath('data.1.order_number', 'ORD123456');
     }
-    public function test_order_pagination(): void
-    {
-         $user = $this->createTestUser();
 
-$this->actingAs($user, 'sanctum');
-        // Create multiple orders for testing
-        // Order::factory()->count(15)->create();
+    $response = $this->getJson('/api/orders?per_page=10');
 
-        $response = $this->getJson('/api/orders?per_page=10');
+    $response->assertOk()
+        ->assertJsonStructure([
+            'success',
+            'data' => [
+                'current_page',
+                'data',
+                'first_page_url',
+                'last_page',
+                'links',
+                'next_page_url',
+                'path',
+                'per_page',
+                'prev_page_url',
+                'total',
+            ],
+        ])
+        ->assertJsonCount(10, 'data.data')
+        ->assertJsonPath('data.per_page', 10)
+        ->assertJsonPath('data.total', 15);
+}
+// order status history
+public function test_order_status_history(): void
+{
+    $user = $this->createTestUser();
+    Sanctum::actingAs($user);
 
-        $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'data',
-                     'links',
-                     'meta',
-                 ])
-                 ->assertJsonCount(10, 'data');
-    }
-    public function test_order_status_history(): void
-    {
-         $user = $this->createTestUser();
+    $order = $this->createTestOrder([
+        'status' => 'pending',
+    ]);
 
-$this->actingAs($user, 'sanctum');
-        // Create an order and update its status
-        $order = $this->createTestOrder([
-            'status' => 'Pending',
-        ]);
+    $this->patchJson("/api/orders/{$order->id}/status", [
+        'status' => 'confirmed',
+    ])->assertOk();
 
-        $this->patchJson("/api/orders/{$order->id}/status", [
-            'status' => 'Processing',
-        ]);
+    $response = $this->getJson("/api/orders/{$order->id}/history");
 
-        $response = $this->getJson("/api/orders/{$order->id}/history");
-
-        $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'success',
-                     'message',
-                     'data' => [
-                         '*' => [
-                             'id',
-                             'user_id',
-                             'order_id',
-                             'previous_status',
-                             'new_status',
-                             'remarks',
-                             'created_at',
-                             'updated_at',
-                         ],
-                     ],
-                 ]);
-    }
+    $response->assertOk()
+        ->assertJsonStructure(['success','message',
+            'data' => [
+                '*' => [
+                    'id',
+                    'user_id',
+                    'order_id',
+                    'previous_status',
+                    'new_status',
+                    'remarks',
+                    'created_at',
+                    'updated_at',
+                ],
+            ],
+        ])
+        ->assertJsonPath('data.0.previous_status', 'pending')
+        ->assertJsonPath('data.0.new_status', 'confirmed');
+}
+// order notes 
    public function test_order_notes(): void
 {
     $user = $this->createTestUser();
@@ -490,7 +540,8 @@ $this->actingAs($user, 'sanctum');
             'note' => 'This is a test note.',
         ]);
 }
-    public function test_order_activity(): void
+// order activity
+public function test_order_activity(): void
 {
     $user = $this->createTestUser();
     Sanctum::actingAs($user);
@@ -519,7 +570,8 @@ $this->actingAs($user, 'sanctum');
             'data',
         ]);
 }
-   public function test_dashboard_data(): void
+// dahsbaord
+public function test_dashboard_data(): void
 {
     $user = $this->createTestUser();
     Sanctum::actingAs($user);

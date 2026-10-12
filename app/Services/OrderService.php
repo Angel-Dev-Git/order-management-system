@@ -15,22 +15,18 @@ USE iLLUMINATE\Pagination\LengthAwarePaginator;
 class OrderService
 {
     public function index(Request $request):LengthAwarePaginator{
-    $user = $request->user();
-    $role = $user->role;
-    $canViewAll = $role?->permissions()->where('permissions.name', 'orders.view_all')->exists() ?? false;
-    $canViewAssigned = $role?->permissions()->where('permissions.name', 'orders.view_assigned')->exists() ?? false;
-    abort_unless(
-        $canViewAll || $canViewAssigned,
-        403,
-        'You do not have permission to view orders.'
-    );
-    $orders = Order::with(['customer', 'assigned', 'items']);
-    // Staff or assigned-only users see their own orders.
-    if (!$canViewAll) {
-        $orders->where('assigned_to', $user->id);
-    }
+        $user = $request->user();
+        $role = $user->role;
+        $canViewAll = $role?->permissions()->where('permissions.name', 'orders.view_all')->exists() ?? false;
+        $canViewAssigned = $role?->permissions()->where('permissions.name', 'orders.view_assigned')->exists() ?? false;
+        abort_unless($canViewAll || $canViewAssigned,403,'You do not have permission to view orders.');
+        $orders = Order::with(['customer', 'assigned', 'items']);
+        // Staff or assigned-only users see their own orders.
+        if (!$canViewAll) {
+            $orders->where('assigned_to', $user->id);
+        }
 
-    $orders->when($request->get('search') ?? null, function ($query, $search) {
+            $orders->when($request->get('search') ?? null, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('order_number', 'like', "%{$search}%")
                         ->orWhereHas('customer', function ($customerQuery) use ($search) {
