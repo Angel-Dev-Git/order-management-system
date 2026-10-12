@@ -1,6 +1,6 @@
 # Technical Notes — Order Management System (OMS)
 
-> **Review before submission:** This document is based on the project stack and features discussed during development. Confirm every implementation detail against the final code. Remove any feature that is not implemented and update the AI-tools section so it accurately reflects the tools actually used.
+>This document is based on the project stack and features discussed during development. Confirm every implementation detail against the final code. Remove any feature that is not implemented and update the AI-tools section so it accurately reflects the tools actually used.
 
 ## 1. Project Overview
 
