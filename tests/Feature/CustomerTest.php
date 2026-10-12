@@ -25,84 +25,9 @@ class CustomerTest extends TestCase
         $response->assertStatus(200);
     }
     
-      private function createTestUser(string $roleName = 'Admin'): User
-{
-    $role = Role::firstOrCreate([
-        'name' => $roleName,
-    ]);
-
-    $allPermissions = [
-        'dashboard.view',
-        'reports.view',
-        'orders.view_all',
-        'orders.view_assigned',
-        'orders.create',
-        'orders.update',
-        'orders.assign',
-        'orders.change_status',
-        'orders.delete',
-        'orders.add_notes',
-        'customers.view',
-        'customers.create',
-        'customers.update',
-        'customers.delete',
-        'products.view',
-        'products.create',
-        'products.update',
-        'products.delete',
-        'users.manage',
-        'roles.manage',
-        'permissions.manage',
-        'audit_logs.view',
-    ];
-
-    $rolePermissions = match ($roleName) {
-        'Admin' => $allPermissions,
-
-        'Manager' => [
-            'dashboard.view',
-            'reports.view',
-            'orders.view_all',
-            'orders.create',
-            'orders.update',
-            'orders.assign',
-            'orders.change_status',
-            'orders.add_notes',
-            'customers.view',
-            'customers.create',
-            'customers.update',
-            'products.view',
-        ],
-
-        'Staff' => [
-            'dashboard.view',
-            'orders.view_assigned',
-            'orders.change_status',
-            'orders.add_notes',
-            'customers.view',
-            'products.view',
-        ],
-
-        default => [],
-    };
-
-    $permissionIds = collect($rolePermissions)
-        ->map(function (string $name) {
-            return Permission::firstOrCreate(
-                ['name' => $name],
-                ['module' => explode('.', $name)[0]]
-            )->id;
-        });
-
-    $role->permissions()->sync($permissionIds);
-
-    return User::factory()->create([
-        'role_id' => $role->id,
-    ]);
-}
 public function test_customer_listing(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     Customer::create([
@@ -131,7 +56,7 @@ public function test_customer_listing(): void
 
 public function test_customer_search(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     Customer::create([
@@ -155,7 +80,7 @@ public function test_customer_search(): void
 
 public function test_customer_creation(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     $response = $this->postJson('/api/customers', [
@@ -186,7 +111,7 @@ public function test_customer_creation(): void
 
 public function test_customer_validation(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     $response = $this->postJson('/api/customers', [
@@ -206,7 +131,7 @@ public function test_customer_validation(): void
 
 public function test_customer_show(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     $customer = Customer::create([
@@ -226,7 +151,7 @@ public function test_customer_show(): void
 
 public function test_customer_update(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     $customer = Customer::create([
@@ -253,7 +178,7 @@ public function test_customer_update(): void
 
 public function test_customer_delete(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     $customer = Customer::create([

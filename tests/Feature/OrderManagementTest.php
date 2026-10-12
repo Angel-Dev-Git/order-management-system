@@ -17,81 +17,7 @@ class OrderManagementTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
-   private function createTestUser(string $roleName = 'Admin'): User
-{
-    $role = Role::firstOrCreate([
-        'name' => $roleName,
-    ]);
-
-    $allPermissions = [
-        'dashboard.view',
-        'reports.view',
-        'orders.view_all',
-        'orders.view_assigned',
-        'orders.create',
-        'orders.update',
-        'orders.assign',
-        'orders.change_status',
-        'orders.delete',
-        'orders.add_notes',
-        'customers.view',
-        'customers.create',
-        'customers.update',
-        'customers.delete',
-        'products.view',
-        'products.create',
-        'products.update',
-        'products.delete',
-        'users.manage',
-        'roles.manage',
-        'permissions.manage',
-        'audit_logs.view',
-    ];
-
-    $rolePermissions = match ($roleName) {
-        'Admin' => $allPermissions,
-
-        'Manager' => [
-            'dashboard.view',
-            'reports.view',
-            'orders.view_all',
-            'orders.create',
-            'orders.update',
-            'orders.assign',
-            'orders.change_status',
-            'orders.add_notes',
-            'customers.view',
-            'customers.create',
-            'customers.update',
-            'products.view',
-        ],
-
-        'Staff' => [
-            'dashboard.view',
-            'orders.view_assigned',
-            'orders.change_status',
-            'orders.add_notes',
-            'customers.view',
-            'products.view',
-        ],
-
-        default => [],
-    };
-
-    $permissionIds = collect($rolePermissions)
-        ->map(function (string $name) {
-            return Permission::firstOrCreate(
-                ['name' => $name],
-                ['module' => explode('.', $name)[0]]
-            )->id;
-        });
-
-    $role->permissions()->sync($permissionIds);
-
-    return User::factory()->create([
-        'role_id' => $role->id,
-    ]);
-}
+ 
     //     public function test_user_info(): void
     // {
     //     // Assuming you have a user with ID 1
@@ -108,7 +34,7 @@ class OrderManagementTest extends TestCase
     // }
 public function test_user_info(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
 
     Sanctum::actingAs($user);
 
@@ -226,7 +152,7 @@ public function test_user_info(): void
     
    private function createTestOrder(array $attributes = []): Order
 {
-    $user = User::first() ?? $this->createTestUser();
+    $user = User::first() ?? self::createTestUser();
 
     $customer = Customer::first() ?? Customer::create([
         'name' => 'Test Customer',
@@ -257,7 +183,7 @@ public function test_user_info(): void
 // order is created
 public function test_order_creation(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
 
     Sanctum::actingAs($user);
 
@@ -312,7 +238,7 @@ public function test_order_creation(): void
 // update order status
 public  function test_order_status_update(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
 
     Sanctum::actingAs($user);
     $order = $this->createTestOrder([
@@ -335,8 +261,8 @@ public  function test_order_status_update(): void
 // assign order
 public function test_order_assignment(): void
 {
-    $admin = $this->createTestUser('Admin');
-    $staff = $this->createTestUser('Staff');
+    $admin = self::createTestUser('Admin');
+    $staff = self::createTestUser('Staff');
 
     Sanctum::actingAs($admin);
     // Create an order first
@@ -359,7 +285,7 @@ public function test_order_assignment(): void
 // search order
    public function test_order_search(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
 
     Sanctum::actingAs($user);
 
@@ -372,7 +298,7 @@ public function test_order_assignment(): void
  // filter orders
 public function test_order_filtering(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
     $customer1 = Customer::create([
         'name' => 'Customer One',
@@ -390,8 +316,8 @@ public function test_order_filtering(): void
         'status' => 'active',
     ]);
 
-    $assignedUser1 = $this->createTestUser('Staff');
-    $assignedUser2 = $this->createTestUser('Staff');
+    $assignedUser1 = self::createTestUser('Staff');
+    $assignedUser2 = self::createTestUser('Staff');
 
     $this->createTestOrder([
         'order_number' => 'ORD123456',
@@ -416,7 +342,7 @@ public function test_order_filtering(): void
 // sort orders
 public function test_order_sorting(): void
 {
-        $user = $this->createTestUser();
+        $user = self::createTestUser();
 
     $this->actingAs($user, 'sanctum');
     // Create some orders for testing
@@ -440,7 +366,7 @@ public function test_order_sorting(): void
 //   pagination 
 public function test_order_pagination(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
      for ($i = 1; $i <= 15; $i++) {
@@ -476,7 +402,7 @@ public function test_order_pagination(): void
 // order status history
 public function test_order_status_history(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     $order = $this->createTestOrder([
@@ -510,7 +436,7 @@ public function test_order_status_history(): void
 // order notes 
    public function test_order_notes(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     $order = $this->createTestOrder([
@@ -543,10 +469,10 @@ public function test_order_status_history(): void
 // order activity
 public function test_order_activity(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
-    $staff = $this->createTestUser('Staff');
+    $staff = self::createTestUser('Staff');
 
     $order = $this->createTestOrder([
         'created_by' => $user->id,
@@ -573,7 +499,7 @@ public function test_order_activity(): void
 // dahsbaord
 public function test_dashboard_data(): void
 {
-    $user = $this->createTestUser();
+    $user = self::createTestUser();
     Sanctum::actingAs($user);
 
     $this->createTestOrder(['status' => 'pending']);
