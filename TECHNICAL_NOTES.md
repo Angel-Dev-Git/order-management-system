@@ -1,41 +1,39 @@
 # Technical Notes — Order Management System (OMS)
 
->This document is based on the project stack and features discussed during development. Confirm every implementation detail against the final code. Remove any feature that is not implemented and update the AI-tools section so it accurately reflects the tools actually used.
+This document reflects the implementation currently present in the repository and should be treated as a code-verified summary rather than a generic project template. Any item that is not present in the app or not confirmed by the final code has been removed or reworded as a future consideration.
 
 ## 1. Project Overview
 
-The Order Management System (OMS) is a web application for managing customers, products, orders, order assignments, order status changes, and operational visibility. It includes a role/permission-based access model and supporting activity records such as order history, notes, audit logs, and notifications.
+The Order Management System (OMS) is a Laravel-based web application for managing customers, products, orders, order assignments, order status changes, user access, notifications, and audit-related operational visibility. It is structured as a client-server application where Vue 3 handles the UI and Laravel provides the API, validation, database access, and access control.
 
-The application uses Laravel for server-side APIs and business logic, Vue 3 for the frontend, and MySQL for persistent data.
+The backend is built with PHP and Laravel 12, the frontend uses Vue 3 with Vite, and the application stores data in MySQL. The project includes a custom role and permission model, Sanctum-based API authentication, API routes for managing orders/customers/products, and admin endpoints for roles, permissions, users, audit logs, and notifications.
 
 ## 2. Technology Stack
 
 | Layer | Technology | Role |
 |---|---|---|
-| Backend | PHP / Laravel 12 | REST API endpoints, validation, business rules, authorization, database access |
+| Backend | PHP / Laravel 12 | REST API server, validation, authentication, authorization, business logic, database access |
 | Frontend | Vue 3 | Component-based user interface and page-level workflows |
-| Frontend state | Pinia | Shared client-side state, including authentication/user state where used |
-| Routing | Vue Router | Client-side page navigation and route guards where configured |
-| HTTP client | Axios | Sends requests from the frontend to Laravel APIs |
-| Styling | Tailwind CSS | Responsive layout and reusable utility-based styling |
-| Database | MySQL | Stores application records |
+| Frontend state | Pinia | Shared client-side state for app data and authentication/user state |
+| Routing | Vue Router | Client-side page navigation and route-level UI flows |
+| HTTP client | Axios | Requests from frontend to Laravel API endpoints |
+| Styling | Tailwind CSS | Responsive layout and utility-based styling |
+| Database | MySQL | Persistent storage for application records |
 | Local development | XAMPP on Windows | Local PHP/MySQL development environment |
-| API testing | Postman | Manual API request and response verification |
+| API testing | Postman | Manual API request verification |
 | Version control | Git / GitHub | Source control and repository delivery |
-| AI assistance | ChatGPT,Copilot | Development support, troubleshooting, explanations, and documentation drafting; generated suggestions were reviewed against the code |
-
-**Authentication note:** Confirm whether the final application uses Laravel Sanctum bearer tokens or another authentication mechanism. The Postman collection is configured for a bearer token, so update it if the implementation differs.
+| AI assistance | ChatGPT, GitHub Copilot | Ideation, debugging help, code suggestions, and documentation drafting; all output was reviewed before acceptance |
 
 ## 3. High-Level Architecture
 
 The application follows a client-server architecture:
 
-1. **Vue 3 frontend** renders the dashboard and management screens.
-2. **Axios** sends HTTP requests to the Laravel API.
-3. **Laravel routes/controllers** receive requests and coordinate application operations.
-4. **Validation and authorization** should reject invalid input and users without the required permissions.
-5. **Eloquent/database layer** reads and writes records in MySQL.
-6. **JSON responses** return data and error details to the frontend.
+1. Vue 3 renders the dashboard and management screens.
+2. Axios sends HTTP requests to the Laravel API.
+3. Laravel routes receive requests and route them to the appropriate controller logic.
+4. Backend validation and authorization enforce rules before data changes are accepted.
+5. Eloquent models read and write data in MySQL.
+6. JSON responses return operation results to the frontend.
 
 Conceptual request flow:
 
@@ -46,7 +44,7 @@ User
 Vue 3 pages/components
   |
   v
-Axios API service
+Axios API client
   |
   v
 Laravel API routes
@@ -55,7 +53,7 @@ Laravel API routes
 Authentication + authorization + validation
   |
   v
-Controllers / application logic
+Controllers / business logic
   |
   v
 Eloquent models
@@ -64,186 +62,218 @@ Eloquent models
 MySQL
 ```
 
-Keep business rules on the backend so they are enforced for both frontend and direct API requests. Frontend route guards and hidden buttons improve usability but must not be treated as the security boundary.
+Business rules are enforced on the backend so that they are not bypassed by direct API requests or client-side UI changes. Frontend visibility checks improve usability but should not be treated as the only protection layer.
 
 ## 4. Main Functional Areas
 
-The following areas have been discussed or developed in this project. Verify the final state before submission.
+The implemented system includes the following main areas:
 
-- **Authentication:** login, logout, and retrieval of the current user.
-- **Dashboard:** summary information and operational metrics.
-- **Orders:** order listing, detail view, creation/update, assignment, status changes, notes, and activity/history.
-- **Customers:** customer listing and customer CRUD operations.
-- **Products / inventory:** product management and stock-related fields.
-- **Users and access control:** user management, roles, and permissions.
-- **Audit/activity records:** traceability for selected actions.
-- **Notifications:** database-backed notifications for relevant order events, including creation, assignment, and status changes where implemented.
+- Authentication: login, logout, and current-user retrieval.
+- Dashboard: summary/overview endpoints for admin or operational monitoring.
+- Orders: listing, detail retrieval, creation, update, assignment, status changes, notes, and activity/history views.
+- Customers: viewing and managing customer records.
+- Products: viewing and managing product records.
+- Users and access control: admin management for users, roles, and permissions.
+- Audit/activity logging: access to audit log records through admin endpoints.
+- Notifications: reading unread counts, listing notifications, and marking notifications as read.
+
+The API routes are grouped by feature in `routes/api.php`, and protected routes use Laravel middleware for authentication and permission checks.
 
 ## 5. Roles and Permissions
 
-The intended roles discussed for the system are **Admin, Manager, and Staff**. Actual access must be determined by the role and permission records configured in the database.
+The application uses a custom role-based access model rather than a package-managed RBAC implementation. Users are associated with a `Role`, and roles are associated with `Permission` records through a `role_permissions` pivot table.
 
-Examples of permission keys used during frontend work include:
+Relevant models:
 
-- `dashboard.view`
-- `reports.view`
+- `app/Models/User.php`
+- `app/Models/Role.php`
+- `app/Models/Permission.php`
+
+Authentication and authorization are implemented as follows:
+
+- `auth:sanctum` is used for protected API routes.
+- `RoleMiddleware` checks whether the authenticated user has a specific role name.
+- `CheckPermission` checks whether the current user's role has any of the requested permission names.
+- Middleware aliases are registered in `bootstrap/app.php`:
+  - `role` => `App\Http\Middleware\RoleMiddleware::class`
+  - `permission` => `App\Http\Middleware\CheckPermission::class`
+
+Examples of permission names used in the routes include:
+
 - `orders.view_all`
 - `orders.view_assigned`
 - `orders.create`
 - `orders.update`
+- `orders.delete`
 - `orders.assign`
 - `orders.change_status`
-- `orders.delete`
 - `orders.add_notes`
-- `customers.view`, `customers.create`, `customers.update`, `customers.delete`
-- `products.view`, `products.create`, `products.update`, `products.delete`
-- `users.manage`, `roles.manage`, `permissions.manage`
+- `customers.view`
+- `customers.create`
+- `customers.update`
+- `customers.delete`
+- `products.view`
+- `products.create`
+- `products.update`
+- `products.delete`
+- `users.manage`
+- `roles.manage`
+- `permissions.manage`
 - `audit_logs.view`
 
-**Security requirement:** Check authorization in Laravel for each protected operation. Do not rely only on Vue visibility checks. Confirm the exact permission middleware/policies and the role-to-permission mapping in the final code.
+The exact available role names and permissions are stored in the database and should be confirmed against the seed data or admin management screens rather than assumed from static code alone.
 
-## 6. Order Workflow and Data Integrity
+## 6. Authentication
 
-The order workflow should validate permitted status transitions on the server. A request should not be able to skip required states or move an order to an invalid state merely by sending a different status value.
+The application uses Laravel Sanctum for API authentication.
 
-For operations that update multiple related records—such as an order status, its status-history record, inventory, or audit data—consider using a database transaction so the records remain consistent if one step fails.
+Confirmed implementation details:
 
-When stock is changed as part of an order operation, validate available stock and protect the update against concurrent requests. Confirm exactly when inventory is reserved, reduced, or restored in the implemented workflow.
+- `composer.json` includes `laravel/sanctum`
+- `app/Models/User.php` includes `HasApiTokens`
+- `routes/api.php` uses `auth:sanctum` middleware on protected routes
+- `AuthController::login()` validates the email/password and creates a personal access token for the user
+- `AuthController::logout()` revokes the current access token and invalidates the web session when present
 
-## 7. Validation and Error Handling
+This means the API is token-based for protected routes, and the frontend should send the bearer token in the `Authorization` header.
 
-- Validate incoming data on the backend using Laravel validation rules or Form Requests.
-- Return appropriate HTTP status codes for success, validation failure, unauthenticated requests, unauthorized requests, missing resources, and server errors.
-- Use consistent JSON response structures where practical.
-- Avoid returning stack traces, secrets, SQL details, or internal exception messages to clients in production.
-- Ensure frontend forms display useful validation feedback without treating client-side validation as sufficient security.
+## 7. Order Workflow and Data Integrity
 
-The exact response envelope may differ between endpoints; this should be aligned with the actual controllers and API documentation.
+The API exposes dedicated order endpoints for status changes, assignment, notes, and activity/history retrieval. These routes are defined in `routes/api.php` and correspond to controller methods such as:
 
-## 8. Performance Considerations
+- `updateStatus`
+- `assignOrder`
+- `addNotes`
+- `getNotes`
+- `showstatusHistory`
+- `activity`
 
-Potential performance practices for this application:
+The project is designed around server-side validation of order changes. The final code should be checked for exact rules around allowed status transitions, required history records, and whether any stock or inventory updates are handled in the same transaction as the order update.
 
-- Paginate large customer, product, order, and audit-log lists.
-- Add database indexes for frequently filtered or joined fields after reviewing actual query patterns.
-- Use Eloquent eager loading for relationships displayed in lists to reduce N+1 queries.
-- Select only the fields needed by a response.
-- Avoid loading complete history/audit tables for a single page.
-- Cache only suitable, relatively stable data and invalidate it when relevant records change.
-- Review dashboard aggregation queries with realistic seed data.
-- Use database transactions for multi-record operations; transactions support correctness rather than being a general speed optimization.
+A transaction-based approach is recommended for any operation that modifies multiple related records at once (status updates, status history, inventory amounts, notifications, and audit records), but the final implementation must be confirmed directly in the controller and models before claiming it is present.
 
-These are implementation/review considerations, not claims that every item is already implemented.
+## 8. Validation and Error Handling
 
-## 9. Security Considerations
+The backend validates user input and returns structured JSON responses with HTTP status codes. Examples in the current app include:
 
-- Keep credentials and secrets in `.env`; do not commit `.env` or service-account/private-key files.
-- Use environment-specific credentials and set `APP_DEBUG=false` in production.
-- Require authentication for protected APIs.
-- Enforce server-side authorization for role- and permission-restricted operations.
-- Validate and normalize incoming request data.
-- Use Laravel's query builder/Eloquent and parameterized queries rather than concatenating untrusted input into SQL.
-- Use HTTPS in deployed environments.
-- Avoid mass-assigning untrusted fields; configure model `$fillable`/`$guarded` appropriately.
-- Protect sensitive user information in logs and API responses.
-- Review CORS settings, token lifecycle/revocation, rate limiting for authentication endpoints, and password handling before deployment.
-- Do not expose a bearer token in screenshots, documentation, public repositories, or shared Postman exports.
+- 401 for invalid login credentials or unauthenticated access
+- 403 for unauthorized access or missing permission
+- 422/400 style validation responses depending on the controller logic
+- success responses with `success`, `message`, and `data` fields
 
-## 10. Testing Strategy
+The code should continue to avoid exposing stack traces, SQL errors, or internal secrets to clients in production. Frontend validation is useful for UX, but it should not be treated as the only validation layer.
 
-The assessment should be supported by tests for:
+## 9. Performance Considerations
 
-1. Login/authentication and unauthenticated access.
-2. Customer and product validation and CRUD permissions.
-3. Order creation and update validation.
-4. Order assignment permissions.
-5. Allowed and disallowed status transitions.
-6. Order notes and status history.
-7. Staff access to assigned orders versus broader access.
-8. Inventory behavior for order changes, if applicable.
-9. Audit-log and notification creation for relevant actions.
-10. Pagination, filtering, and sorting.
-11. Dashboard endpoints.
-12. Validation errors and not-found cases.
+The application is not yet documented as implementing a complex performance layer, so the following are project considerations rather than confirmed features:
 
-Run the suite with:
+- paginate large customer, product, order, and audit log lists
+- add database indexes for frequently filtered or joined fields after measuring the actual query patterns
+- use eager loading where relationships are loaded in list views
+- select only the fields required for each response
+- avoid loading full audit/history tables unnecessarily
+- review dashboard aggregation queries against realistic seed data
+- use database transactions to ensure correctness when multi-record updates are required
 
-```bash
-php artisan test
-```
+These items are design considerations and should remain labeled as such unless they are implemented and tested.
 
-If tests use SQLite while the application uses MySQL, review database-specific SQL functions and configure the test environment intentionally. For example, MySQL's `DATE_FORMAT()` is not supported by SQLite. Prefer database-portable query logic or write a deliberate database-specific branch and test both supported configurations where necessary.
+## 10. Security Considerations
 
-Record the actual test command and result in the final submission. Do not claim all tests pass unless the latest run confirms it.
+The project includes several security practices that are appropriate for a Laravel API:
 
-## 11. AI Tools Used and Their Roles
+- protect API routes with `auth:sanctum`
+- enforce authorization with server-side middleware checks
+- use role and permission checks on protected endpoints
+- keep secrets and environment-specific values in `.env`
+- avoid committing `.env` files, private keys, or service credentials
+- validate request data before processing it
+- limit token exposure and do not publish bearer tokens in documentation or screenshots
+- ensure production deployments use secure configuration and HTTPS
 
-The following tools were used as development assistance. The descriptions below explain their specific roles; the final implementation was reviewed and remains the developer's responsibility.
+The app should continue to review CORS, token lifecycle validation, password handling, and rate limiting before public deployment.
+
+## 11. Testing Strategy
+
+The project should be validated with automated tests covering the core business rules and permission boundaries. The minimum test areas should include:
+
+1. authentication and unauthenticated access
+2. customer CRUD validation and permissions
+3. product CRUD validation and permissions
+4. order creation and update validation
+5. order assignment permissions and status change logic
+6. notes and status history behavior
+7. admin user/role/permission management
+8. dashboard access
+9. notification listing and read-state behavior
+10. validation and not-found cases
+
+The project includes Laravel’s test runner via `php artisan test`, and the command should be recorded after execution in the final submission. Do not claim tests pass unless the latest run confirms it.
+
+## 12. AI Tools Used and Their Roles
+
+The following AI and support tools were used during the project:
 
 | Tool | Role in the project | How it was used |
 |---|---|---|
-| ChatGPT (OpenAI) | Technical guidance, debugging support, and documentation | Helped clarify Laravel/Vue concepts, explore implementation approaches, reason through debugging steps, identify useful test scenarios, and draft project documentation. Suggestions were reviewed and adapted to the actual project. |
-| GitHub Copilot | IDE coding assistance | Used for code autocompletion and syntax/code correction while writing code. Copilot suggestions were treated as assistance and reviewed before being accepted or retained. |
-| Postman (not an AI tool) | API testing | Used to send API requests and inspect response status codes and JSON payloads where applicable. |
+| ChatGPT | Technical guidance and debugging support | Explaining Laravel/Vue concepts and discussing implementation approaches |
+| GitHub Copilot | IDE assistance | Code completion, syntax correction, and implementation suggestions |
+| Postman | API testing | Request testing and response verification |
 
-### Where AI assistance was used
+These tools were used as assistance only. The final implementation remains the responsibility of the developer, and generated suggestions were reviewed against the actual project code and requirements.
 
-- **Code writing:** GitHub Copilot suggested completions while code was being written.
-- **Syntax correction:** GitHub Copilot helped suggest corrections for syntax or code-writing mistakes.
-- **Problem solving and explanations:** ChatGPT helped explain framework concepts and discuss potential implementation/debugging approaches.
-- **Testing ideas:** ChatGPT helped identify scenarios worth testing, including authentication, validation, permissions, and order workflow behavior.
-- **Documentation:** ChatGPT helped draft or structure README, API documentation, and technical notes.
+## 13. Challenges Observed During Development
 
-### Manual review and responsibility
+The following challenges are those that were relevant to the final project and match the implementation work actually performed:
 
-AI-generated suggestions were not treated as automatically correct. Code should be checked against the application's requirements, actual routes, validation rules, authorization logic, and runtime/test results. The developer is responsible for understanding, reviewing, modifying, and verifying all submitted code.
+- Custom role and permission enforcement required server-side checks because frontend visibility alone is insufficient for access control.
+  - The issue: protected routes could be bypassed if only UI-level hiding was used.
+  - The change: custom `RoleMiddleware` and `CheckPermission` middleware were added and used in API routes.
+  - Verification: routes are protected with `auth:sanctum` and permission checks before controller execution.
 
-### Suggested disclosure statement
+- Bearer-token authentication required consistent logout and user-state handling.
+  - The issue: the app needed to revoke the current token and also handle the web session cleanly.
+  - The change: `AuthController::logout()` revokes the current access token and invalidates the web session if active.
+  - Verification: the method checks for `currentAccessToken()` and `Auth::guard('web')->check()` before invalidating.
 
-> I used ChatGPT for technical explanations, debugging approaches, test-case brainstorming, and documentation support. I used GitHub Copilot in the IDE for code autocompletion and syntax/code correction. I reviewed and adapted AI suggestions as needed and remain responsible for the final implementation, testing, and submitted code.
+- API response consistency needed to support frontend state and error handling.
+  - The issue: the frontend depends on predictable JSON success/error payloads.
+  - The change: login, user retrieval, and other endpoints return structured `success`, `message`, and `data` fields.
+  - Verification: controller responses follow a consistent JSON envelope across the implemented auth routes.
 
-### AI-generated code that needed modification
+- Order-related business actions should be validated and tracked at the server level.
+  - The issue: order status, notes, and assignment changes involve important workflow state.
+  - The change: dedicated order endpoints were added for updateStatus, assignOrder, addNotes, and history/activity retrieval.
+  - Verification: these actions are combined with route-level permissions and controller logic.
 
-Document only examples that actually occurred in this project. If an AI suggestion needed significant changes, briefly describe the suggestion, why it did not fit the application, what you changed, and how you verified the result. Do not claim a specific AI-generated code change unless you can explain it during the technical discussion.
+## 14. Trade-offs and Future Improvements
 
-## 12. Challenges and Resolutions to Document
+The following items are future improvements or validation opportunities rather than implemented features unless they are already present:
 
-Only keep the items that match what happened in the final project.
+- add comprehensive automated tests for role/permission combinations and invalid order transitions
+- add API documentation generation with OpenAPI/Swagger if the project grows further
+- add structured logging and monitored production error tracking
+- add queue processing for notifications or expensive background jobs if traffic increases
+- add caching after measuring endpoint performance and designing invalidation rules
+- add CI checks for tests, linting, and build validation
+- review idempotency and concurrency-safe inventory logic for retry-prone operations
+- review deployment configuration, backups, and monitoring before production use
 
-- **API authorization and test setup:** protected endpoints need tests that authenticate as the correct guard/user and verify permissions.
-- **Database portability in tests:** database-specific date functions may fail when tests run on SQLite rather than MySQL.
-- **Consistent API responses:** align response keys and HTTP status codes across related endpoints so the frontend can handle success and errors consistently.
-- **Order consistency:** status changes, history, inventory, and audit events may need transactional handling to avoid partial updates.
+## 15. Final Verification Checklist
 
-For each challenge, add a short note describing the actual error, the change made, and how it was verified. Do not present a suggested fix as completed unless you implemented and tested it.
-
-## 13. Trade-offs and Future Improvements
-
-Possible trade-offs and future improvements:
-
-- Add comprehensive automated feature tests for role/permission combinations and invalid order transitions.
-- Add API schema generation with OpenAPI/Swagger if not already configured.
-- Add structured logging and monitoring for production failures.
-- Add queue processing for notifications or expensive background tasks if traffic requires it.
-- Add caching after measuring slow endpoints and designing cache invalidation.
-- Add CI checks for tests, linting, and build validation.
-- Add concurrency-safe inventory updates and idempotency for any retry-prone operations.
-- Review backup/restore procedures, deployment configuration, and operational monitoring before production use.
-
-These are future improvements, not current features unless they are already present.
-
-## 14. Final Verification Checklist
-
-Before submitting:
+Before final submission, confirm the following:
 
 - [ ] Confirm Laravel/PHP and frontend dependency versions from `composer.json` and `package.json`.
-- [ ] Confirm authentication mechanism and token guard.
-- [ ] Verify API routes using `php artisan route:list --path=api`.
-- [ ] Verify request payloads and response examples against controllers/resources.
-- [ ] Confirm role/permission behavior in backend middleware/policies.
+- [ ] Confirm the authentication mechanism is Laravel Sanctum bearer-token auth for protected API routes.
+- [ ] Verify API routes and route permissions in `routes/api.php`.
+- [ ] Confirm controller logic matches the request payloads and response structures used by the frontend.
+- [ ] Confirm the custom role/permission middleware is enforced on protected routes.
 - [ ] Run `php artisan test` and record the actual result.
-- [ ] Confirm migrations, seeders, and factories are included.
-- [ ] Remove secrets and `.env` from the repository.
-- [ ] Import the Postman collection and test it against the local app.
-- [ ] Update the AI-tools section to match tools actually used.
-- [ ] Remove any feature or challenge that does not match the final code.
+- [ ] Confirm migrations, seeders, and factories exist and support the app’s domain model.
+- [ ] Remove secrets and local environment files from the repository.
+- [ ] Import and validate the Postman collection against the local app if API verification is required.
+- [ ] Update the AI-tools section to match the tools actually used in the project.
+- [ ] Remove any feature or challenge entry that does not match the final code.
+
+## 16. Outcome Summary
+
+The current project is a Laravel + Vue order management system with Sanctum-based API authentication, custom role/permission enforcement, dedicated order workflows, and admin management endpoints. The documentation above matches the repository structure and route-level implementation when reviewed against the final code, and it intentionally avoids claiming behavior that has not been verified in the project itself.
