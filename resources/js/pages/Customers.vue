@@ -3,7 +3,8 @@
 import { ref, onMounted, computed } from 'vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
-
+import AppToast from '../components/ToastAlert.vue'
+import ConfirmModal from '../components/ModalConfirm.vue'
 const authStore = useAuthStore()
 
 const canViewCustomers = computed(() =>authStore.hasPermission('customers.view'))
@@ -21,7 +22,8 @@ const error = ref('')
 const validationErrors = ref({})
 const showModal = ref(false)
 const editingCustomer = ref(null)
-
+const toastRef = ref(null)
+const confirmModalRef = ref(null)
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalCustomers = ref(0)
@@ -142,10 +144,19 @@ async function saveCustomer() {
 
 async function deleteCustomer(customer) {
     if(!canDeleteCustomer.value) return
+    const confirmed = await confirmModalRef.value?.open({
+        title: 'Delete customer?',
+        message: `Are you sure you want to delete "${customer.name}"? This action cannot be undone.`,
+        confirmText: 'Delete customer',
+        variant: 'danger',
+    })
+
+    if (!confirmed) return
   error.value = ''
 
   try {
     await api.delete(`/customers/${customer.id}`)
+    toastRef.value.show('Customer deleted successfully.', 'success')
 
     const nextPage =
       customers.value.length === 1 && currentPage.value > 1
@@ -156,6 +167,7 @@ async function deleteCustomer(customer) {
   } catch (err) {
     error.value =
       err.response?.data?.message || 'Unable to delete the customer.'
+      toastRef.value.show(message, 'error')
   }
 }
 
@@ -454,5 +466,7 @@ onMounted(() => {
         </form>
       </div>
     </div>
+    <AppToast ref="toastRef" />
+          <ConfirmModal ref="confirmModalRef" />
   </div>
 </template>

@@ -1,10 +1,17 @@
 
 <script setup>
-import { ref, onMounted,computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '../services/api'
-import {useAuthStore} from '../stores/auth'
+import { useAuthStore } from '../stores/auth'
+import AppToast from '../components/ToastAlert.vue'
+import ConfirmModal from '../components/ModalConfirm.vue'
+
 const authStore = useAuthStore()
-const canManageRole = computed(()=>authStore.hasPermission('roles.manage'));
+
+const canManageRole = computed(() =>
+    authStore.hasPermission('roles.manage')
+)
+
 const roles = ref([])
 const search = ref('')
 const loading = ref(false)
@@ -16,10 +23,12 @@ const currentPage = ref(1)
 const lastPage = ref(1)
 
 const showModal = ref(false)
-const showDeleteModal = ref(false)
 const editingRole = ref(null)
 const selectedRole = ref(null)
 const roleName = ref('')
+
+const toastRef = ref(null)
+const confirmModalRef = ref(null)
 
 const builtInRoles = ['admin', 'manager', 'staff']
 
@@ -27,11 +36,24 @@ const isBuiltIn = (role) =>
     builtInRoles.includes((role?.name || '').toLowerCase())
 
 const getErrorMessage = (err) => {
-    return err.response?.data?.message || 'Something went wrong. Please try again.'
+    const validationErrors = err.response?.data?.errors
+
+    if (validationErrors) {
+        return Object.values(validationErrors).flat().join(' ')
+    }
+
+    return err.response?.data?.message
+        || 'Something went wrong. Please try again.'
+}
+
+// Use the method exposed by ToastAlert.vue.
+const showToast = (message, type = 'success') => {
+    toastRef.value?.show(message, type)
 }
 
 const loadRoles = async (page = 1) => {
-    if(!canManageRole) return
+    if (!canManageRole.value) return
+
     loading.value = true
     error.value = ''
 
@@ -45,18 +67,20 @@ const loadRoles = async (page = 1) => {
 
         const result = response.data.data
 
-        roles.value = result.data || []
-        currentPage.value = result.current_page || 1
-        lastPage.value = result.last_page || 1
+        roles.value = result?.data ?? []
+        currentPage.value = result?.current_page ?? 1
+        lastPage.value = result?.last_page ?? 1
     } catch (err) {
         error.value = getErrorMessage(err)
+        showToast(error.value, 'error')
     } finally {
         loading.value = false
     }
 }
 
 const openCreateModal = () => {
-    if(!canManageRole.value) return
+    if (!canManageRole.value) return
+
     editingRole.value = null
     roleName.value = ''
     error.value = ''
@@ -64,8 +88,7 @@ const openCreateModal = () => {
 }
 
 const openEditModal = (role) => {
-    if(!canManageRole.value) return
-    if (isBuiltIn(role)) return
+    if (!canManageRole.value || isBuiltIn(role)) return
 
     editingRole.value = role
     roleName.value = role.name
@@ -77,10 +100,12 @@ const closeModal = () => {
     showModal.value = false
     editingRole.value = null
     roleName.value = ''
+    error.value = ''
 }
 
 const saveRole = async () => {
-    if(!canManageRole.value) return
+    if (!canManageRole.value) return
+
     const name = roleName.value.trim()
 
     if (!name) {
@@ -90,43 +115,54 @@ const saveRole = async () => {
 
     saving.value = true
     error.value = ''
-    success.value = ''
 
     try {
         if (editingRole.value) {
-            await api.put(`/admin/roles/${editingRole.value.id}`, { name })
-            success.value = 'Role updated successfully.'
+            await api.put(
+                `/admin/roles/${editingRole.value.id}`,
+                { name }
+            )
+
+            showToast('Role updated successfully.', 'success')
         } else {
             await api.post('/admin/roles', { name })
-            success.value = 'Role created successfully.'
+
+            showToast('Role created successfully.', 'success')
         }
 
         closeModal()
+        success.value = ''
         await loadRoles(currentPage.value)
     } catch (err) {
         error.value = getErrorMessage(err)
-
-        const validationErrors = err.response?.data?.errors
-        if (validationErrors?.name?.length) {
-            error.value = validationErrors.name[0]
-        }
     } finally {
         saving.value = false
     }
 }
 
-const openDeleteModal = (role) => {
-    if(!canManageRole.value) return 
-    if (isBuiltIn(role)) return
+// Open the reusable confirmation modal immediately.
+const openDeleteModal = async (role) => {
+    if (!canManageRole.value || isBuiltIn(role)) return
 
     selectedRole.value = role
     error.value = ''
-    showDeleteModal.value = true
+
+    const confirmed = await confirmModalRef.value?.open({
+        title: 'Delete role?',
+        message: `Are you sure you want to delete "${role.name}"? This action cannot be undone.`,
+        confirmText: 'Delete role',
+        cancelText: 'Cancel',
+        variant: 'danger',
+    })
+
+    // If the modal is unavailable or the user cancels, do nothing.
+    if (confirmed !== true) return
+
+    await deleteRole()
 }
 
 const deleteRole = async () => {
-    if(!canManageRole.value) return
-    if (!selectedRole.value) return
+    if (!canManageRole.value || !selectedRole.value) return
 
     saving.value = true
     error.value = ''
@@ -134,28 +170,30 @@ const deleteRole = async () => {
     try {
         await api.delete(`/admin/roles/${selectedRole.value.id}`)
 
-        showDeleteModal.value = false
-        selectedRole.value = null
-        success.value = 'Role deleted successfully.'
+        showToast('Role deleted successfully.', 'success')
 
-        const page = roles.value.length === 1 && currentPage.value > 1
-            ? currentPage.value - 1
-            : currentPage.value
+        selectedRole.value = null
+        success.value = ''
+
+        const page =
+            roles.value.length === 1 && currentPage.value > 1
+                ? currentPage.value - 1
+                : currentPage.value
 
         await loadRoles(page)
     } catch (err) {
         error.value = getErrorMessage(err)
-        showDeleteModal.value = false
+        showToast(error.value, 'error')
     } finally {
         saving.value = false
     }
 }
 
 onMounted(() => {
-if(!canManageRole.value) return 
-loadRoles()
-}
-)
+    if (canManageRole.value) {
+        loadRoles()
+    }
+})
 </script>
 
 <template>
@@ -387,7 +425,7 @@ loadRoles()
         </div>
 
         <!-- Delete confirmation modal -->
-        <div
+        <!-- <div
             v-if="showDeleteModal"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
             @click.self="showDeleteModal = false"
@@ -427,6 +465,8 @@ loadRoles()
                     </button>
                 </div>
             </div>
-        </div>
+        </div> -->
+        <AppToast ref="toastRef" />
+          <ConfirmModal ref="confirmModalRef" />
     </div>
 </template>
